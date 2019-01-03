@@ -1,0 +1,10 @@
+% PaCS MDに言及する必要なし．
+
+
+% タンパク質の構造変化はその生物学的機能に大きく関わっており、分子動力学シミュレーション(MD)を用いて構造変化パスウェイを解明する試みが数多くなされている．
+% Parallel Cascade Selection Molecular　Dynamics (PaCS-MD)は短時間MDを繰り返し適用することで構造変化パスウェイを高速に探索する手法として提案されたが、局所安定構造に探索がトラップされてしまうという問題点を抱えている．本研究ではPaCS-MDを拡張し、UCTと呼ばれる木探索アルゴリズムを導入することで、Parallel Tree Search Molecular Dynamics (PaTS MD)という新たな手法を開発した．PaTS-MDはより広範囲を探索することが可能であり、局所構造から脱出しやすい手法である．実験によりChignolin, Trp-cageのフォールディングパスウェイ探索においてPaTS MDはPaCS MDよりも良い性能を達成した．
+
+
+%Proteins conformation is crucially relevant to their biological functions. MD simulation has been widely used as a powerful tool to elucidate the proteins comformational transition mechanism. Parallel Cascade Selection Molecular Dynamics (PaCS-MD) is a method to search proteins comformational transition pathway quickly by performing short time MD simulation repeatedly. While PaCS-MD can successfully find the correct pathway in the simplest situation, it has a critical problem that it can be trapped in local optima since it works very "greedy". In this study, we extend PaCS-MD to a novel method, Parallel Tree Search Molecular Dynamics (PaTS-MD), by applying the tree search algorithm called UCT. PaTS-MD can search broader space and can escape from the local optima easier than PaCS-MD. PaTS-MD shows better performance than PaCS-MD in the experiment of searching the folding pathway of small proteins.
+
+Proteins conformation is crucially relevant to their biological functions. Though molecular dynamics (MD) simulation has been widely used as a tool to sample protein conformations, the accessible time scale is not enough to observe the biological process. In this study, we developed a novel method, Parallel Tree Search Molecular Dynamics (PaTS-MD), to accelerate the search of conformational transition pathways. In PaTS-MD, a tree search algorithm is applied to choose a structure to perform MD simulation, which enable to avoid being trapped in a local stable structure and search broader space. PaTS-MD shows better performance than the existing method in the experiment of searching the folding pathways of small proteins, chignolin and Trp-cage.

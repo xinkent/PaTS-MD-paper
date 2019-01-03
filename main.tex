@@ -1,0 +1,45 @@
+\documentclass[journal=jacsat, manuscript=article]{achemso}
+
+\usepackage[version=3]{mhchem}
+\usepackage[utf8]{inputenc}
+\usepackage{natbib}
+\usepackage{comment}
+% \usepackage[dvipdfmx]{graphicx}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{subcaption}
+
+\newcommand{\argmax}{\mathop{\rm arg~max}\limits}
+\renewcommand{\thesection}{\arabic{section}}
+
+\title{Enhancing biomolecular sampling with reinforcement learning: a parallel tree search molecular dynamics simulation method}
+% \title{Sampling protein folding conformations with parallel tree search selection molecular dynamics}
+% \title{Tree search method for enhancing biomolecular sampling: an application in protein folding}
+
+\author{Kento Shin}
+\date{December 2018}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\input{abstruct.tex}
+\end{abstract}
+
+\section{Introduction}
+\input{introduction.tex}
+
+\section{Method}
+\input{method.tex}
+
+
+\section{Result}
+\input{result.tex}
+
+\section{Conclusion}
+\input{conclusion.tex}
+
+\bibliographystyle{plain}
+\bibliography{references}
+\end{document}

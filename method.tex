@@ -1,0 +1,107 @@
+\subsection{Procedure of PaCS-MD}
+Figure \ref{fig:pacs_and_pats_mehtod}(a) shows a brief illustration of PaCS-MD method. In PaCS-MD, both "reactant" and "product" structures are given {\it a priori}. PaCS-MD starts from the initial structure (reactant) and continues until it reaches the structure sufficiently close to the target structure (product) by repeating short Multiple Independent Molecular Dynamics (MIMD) simulations. In each cycle of PaCS-MD, M short MIMD starting from different snapshot were performed by giving different initial velocity randomly to each initial structure. Then generated snapshots are rank-ordered with respect to the similarity to the product structure. Root-mean-square-deviation from the product structure is employed to measure the similarity to the product structure. Top M snapshots are selected as the initial structures  for the next cycle. This cycle is subsequently repeated until highly ranked snapshots reach the sufficiently close to the product. After that, we can generate a trajectory from the reactant to the target by connecting all trajectories in each cycle. 
+
+Since PaCS-MD is a pretty "greedy" algorithm, which means that it always chose the way which looks best based on the knowledge obtained so far, it can be trapped in a local stable minimum structure. 
+
+
+
+\subsection{Procedure of PaTS-MD}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=15cm]{Figures/pacs_and_pats_method.png}
+\caption{A procedure of (a) PaCS-MD, (b) PaTS-MD } 
+\label{fig:pacs_and_pats_mehtod}
+6\end{figure}
+
+PaTS-MD is a novel extension of PaCS-MD by applying tree search method to avoid being trapped in local optima. In the tree search, tree is composed of node and edge and gradually constructed as the search goes on. In PaTS-MD, the node is the protein structure and the edge is the trajectory between two structures obtained by the short MD simulations. 
+
+We applied UCT algorithm in PaTS-MD. UCT is a kind of Monte Carlo Tree Search algorithm which is successful mainly in computer GO problem. UCT treat the choice of child node as a multi-armed bandit problem. UCT can address the exploration-exploitation dilemma of bandit problem by choosing the child nodes which has the maximum Upper Confidence Bound (UCB). UCB of i'th child node is represented as follows.
+\begin{equation}
+UCB_{i} = X_i + C \sqrt{\frac{2\log{N}}{n_i}},
+\end{equation}
+where $N$ is the number of times the parent node has been visited, $n_j$ is the number of times child j has been visited, $X_i$ is a value of the node i and $C$ is a constant to balance exploration and exploitation. We use a negative of minimum RMSD of the downstream nodes as $X$. The reason why negative RMSD is used is that we want to minimize the RMSD although UCT is basically designed to find the maximum. UCB deal with the trade-off between  the first (exploitation) and second (exploration) terms. At first, a node with high $X$ is likely  to be selected. But as the number of times $n$ increases, UCB gradually decrease and another child node become likely to be selected. Thanks to this property, PaTS-MD can escape from the local stable optima. Obviously, how much it tends to do exploitation or exploration is strongly dependent on value of constant $C$.
+The appropriate value of $C$ is determined by the complexity of the target system and the length of available time.
+One cycle of PaTS-MD consists of selection, expansion, backpropagation steps as shown in Figure \ref{fig:pacs_and_pats_mehtod}(b).
+In the selection step, the tree is traversed from the root to a leaf by choosing the child with maximum UCB recursively at each branch. If more than one child node have the same maximal value, the one of which is chosen randomly. In the expansion step, short MD simulation is performed from the selected node and the snapshot with minimum RMSD is added as a child of the selected node. If RMSD does not decrease, it is not added. Finally, in the backpropagation step, the visit count of each ancestor node is incremented by one and value $X$ is also updated if obtained RMSD is less than the original one. The detail process of these steps are illustrated as pseudocode in Algorithm \ref{alg:pats}.
+
+\subsection{PaTS-MD with penalization}
+To avoid being trapped to local stable structure more, we penalize the value $X$ based on how many similar structures are already searched.
+The penalized value $X'$ is calculated as follows.
+\begin{equation}
+X'_i = X_i * \alpha^{N\_similar}, 
+\end{equation}
+where $\alpha$ is the penalty constant and N\_similar is the number of similar structure to i'th structure. The similar structure is defined as the structure whose RMSD to i'th structure is less than 0.5 \AA.
+This penalization prevent to search the states with high frequency area and encourage to search the states with low frequencies. Moreover, it transmits the information from one branch to other branches, which can reduce the number of searches which are already done by another branch.
+
+\subsection{Computational Details}
+% Calculation performed in this study (parameters of PaCS-MD, PaTS-MD, snapshot sampling frequencies etc…, simulation parameter used: thermostat, barostat, timestep etc, equilibrating methods before production simulations…
+
+To demonstrate the performance of PaTS-MD, we applied both PaCS-MD and PaTS-MD methods to folding small proteins, chignolin and Trp-cage in the explicit water.
+
+NMR structure (PDB ID: 2RVD for chignolin, 1L2Y for Trp-cage) are used as a target, and artificially extended structure as a reactant.
+ABMER ff99SB force field was employed for both systems. The simulated systems were solvated with SPC/E water model for chignolin and TIP3P water model for Trp-cage. Rectangular simulation boxes were constructed with a margin of at least 10  \AA \  from the proteins to the box boundaries.
+The chignolin system contained 5712 water molecules and 2 NA$^+$ ions. The Trp-cage system contained 18980 water molecules and 1 Cl$^-$ ion.
+
+In each cycle of PaCS-MD and PaTS-MD, 100-ps MD simulation was performed under constant temperature condition at 300K for chignolin and 320K for Trp-cage using V-rescale thermostat. The electorostatic interactions were treated with particle mesh Ewald method. The simulation time step was 2 fs with constraining all bonds via LINCS and snapshots in each trajectory was recorded every 1ps. All the MD simulations were performed with the GPU version of the GROMACS 2016.5 package. 
+
+In the demonstrations, PaCS-MD and PaTS-MD cycle was repeated until C$_\alpha$ RMSD to the native structure was less than 1.0 \AA. We set the number of parallel cascades in PaCS-MD as 5 and the maximum number of children nodes in PaTS-MD as 3.
+
+
+% \begin{comment}
+\begin{algorithm}[ht]
+\caption{PaTS-MD algorithm}\label{alg:pats}
+\begin{algorithmic}[0]
+\Function{PaTS-MD}{}
+\State create $rootnode$
+\State $node \gets node_0$
+\While{$node.X > RMSD\_MIN$}
+\State $node \gets$ \Call{Select}{$rootnode$}
+\State $child \gets$\Call{MakeChild}{node}
+\State $X \gets$\Call{MDrun}{$child$}
+\If{$X < node.X$}
+\State \Call{AddChild}{$child, node$}
+\EndIf
+\While{$child \not= rootnode$}
+\State $Backpropagete(child, -X)$
+\State $child \gets child.parent$
+\EndWhile
+\EndWhile
+\EndFunction
+\\
+\Function{MakeChild}{$parent$} \label{func:makechild}
+\State $node \gets object$
+\State $node.v \gets 0$
+\State $node.X \gets \infty$
+\State $node.X_{max} \gets \infty$
+\State $node.parent \gets parent$
+\State \Return $node$
+\EndFunction
+\\
+\Function{AddChild}{$node, parent$} \label{func:addchild}
+\State $parent.children \gets [parent.children, node]$
+\EndFunction
+\\
+\Function{Select}{$node$} \label{func:select}
+\While{$length(node.children) < MAX\_CHILDREN$}
+\State $node \gets \argmax_{v' \in children \: of \: v} node.X_{max} + C \sqrt{\frac{2\log(node.parent.v}{node.v})}$
+\EndWhile
+\State \Return{$node$}
+\EndFunction
+\\
+\Function{MDrun}{$node$} \label{func:mdrun}
+\State $traj \gets$ MDsimulate from the $node.parent.structure$
+\State $node.structure \gets$ choose the snapshot with minimum RMSD in the $traj$
+\State $node.X \gets$ minimum RMSD in the $traj$
+\State \Return{node.X}
+\EndFunction
+\\
+\Function{Update}{$node, X$} \label{func:update}
+\State $node.v \gets node.v + 1$
+\If{$X > node.X_{max}$}
+\State $node.X_{max} \gets X$
+\EndIf
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+% \end{comment}
